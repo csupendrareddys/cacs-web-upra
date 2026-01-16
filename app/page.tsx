@@ -1,16 +1,37 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { Loader2, ArrowRight } from 'lucide-react';
 
 export default function Home() {
   const [isNavOpen, setIsNavOpen] = useState(false);
+  const [services, setServices] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const res = await fetch('/api/services');
+        const data = await res.json();
+        if (data.services) {
+          setServices(data.services);
+        }
+      } catch (error) {
+        console.error("Failed to load services");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchServices();
+  }, []);
 
   return (
     <div className="min-h-screen bg-white text-gray-900 font-sans">
       {/* Utility Bar */}
       <div className="bg-gray-100 border-b border-gray-200 text-xs py-2">
         <div className="container mx-auto px-4 flex justify-end">
-          <a className="text-gray-600 hover:text-black font-medium" href="#">Partner Login</a>
+          <Link className="text-gray-600 hover:text-black font-medium" href="/partner-login">Partner Login</Link>
         </div>
       </div>
 
@@ -18,7 +39,6 @@ export default function Home() {
       <header className="sticky top-0 bg-white/90 backdrop-blur-md z-50 border-b border-gray-200 shadow-sm">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            {/* Replaced img with a placeholder div or Next/Image if you had the asset. Using text for now since assets moved. */}
             <div className="h-8 w-8 bg-black rounded-lg flex items-center justify-center text-white font-bold">U</div>
             <span className="text-xl font-bold tracking-tight">UPRA</span>
           </div>
@@ -40,7 +60,6 @@ export default function Home() {
             <Link href="#" className="hover:text-purple-600 transition-colors">MCA</Link>
             <Link href="#" className="hover:text-purple-600 transition-colors">Compliances</Link>
             <Link href="#" className="hover:text-purple-600 transition-colors">Global</Link>
-            {/* <Link href="/bars" className="hover:text-purple-600 transition-colors">UI Bars</Link> */}
           </nav>
 
           <div className="hidden md:block">
@@ -72,21 +91,52 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Features */}
+        {/* Dynamic Services Section */}
         <section className="py-16 bg-white">
-          <div className="container mx-auto px-4 grid md:grid-cols-3 gap-8">
-            <div className="p-6 border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-shadow bg-gray-50/50">
-              <h2 className="text-xl font-bold mb-3">Startup</h2>
-              <p className="text-gray-600">Assistance for company formation and registrations.</p>
-            </div>
-            <div className="p-6 border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-shadow bg-gray-50/50">
-              <h2 className="text-xl font-bold mb-3">GST & Tax</h2>
-              <p className="text-gray-600">End-to-end compliance and filing support.</p>
-            </div>
-            <div className="p-6 border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-shadow bg-gray-50/50">
-              <h2 className="text-xl font-bold mb-3">Partner Program</h2>
-              <p className="text-gray-600">Partner with us for referrals and mutual growth.</p>
-            </div>
+          <div className="container mx-auto px-4">
+            <h2 className="text-3xl font-bold text-center mb-12">Our Services</h2>
+
+            {loading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
+              </div>
+            ) : services.length > 0 ? (
+              <div className="grid md:grid-cols-3 gap-8">
+                {services.map((service, idx) => (
+                  <div key={service.document_id || idx} className="p-6 border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all hover:-translate-y-1 bg-gray-50/50 group">
+                    <h3 className="text-xl font-bold mb-3 group-hover:text-purple-600 transition-colors">{service.document_type}</h3>
+                    <p className="text-gray-600 mb-4 text-sm">Professional assistance for {service.document_type} related requirements.</p>
+                    <div className="flex items-center text-sm font-medium text-purple-600">
+                      <span>{service.state || 'Global'}</span>
+                      <ArrowRight className="h-4 w-4 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center text-gray-500 py-12 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                <p>No active services listed at the moment.</p>
+                <p className="text-xs mt-2">Check back soon for updates.</p>
+              </div>
+            )}
+
+            {/* Fallback Static Cards if DB is empty for demo purposes (Optional, but good for UX) */}
+            {!loading && services.length === 0 && (
+              <div className="grid md:grid-cols-3 gap-8 mt-12 opacity-50 grayscale hover:grayscale-0 transition-all duration-500">
+                <div className="p-6 border border-gray-100 rounded-2xl shadow-sm bg-gray-50/50">
+                  <h2 className="text-xl font-bold mb-3">Startup (Example)</h2>
+                  <p className="text-gray-600">Assistance for company formation and registrations.</p>
+                </div>
+                <div className="p-6 border border-gray-100 rounded-2xl shadow-sm bg-gray-50/50">
+                  <h2 className="text-xl font-bold mb-3">GST (Example)</h2>
+                  <p className="text-gray-600">End-to-end compliance and filing support.</p>
+                </div>
+                <div className="p-6 border border-gray-100 rounded-2xl shadow-sm bg-gray-50/50">
+                  <h2 className="text-xl font-bold mb-3">Partner Program (Example)</h2>
+                  <p className="text-gray-600">Partner with us for referrals and mutual growth.</p>
+                </div>
+              </div>
+            )}
           </div>
         </section>
       </main>
@@ -131,6 +181,11 @@ export default function Home() {
         </div>
         <div className="container mx-auto px-4 mt-12 pt-8 border-t border-gray-200 text-center text-gray-500">
           <small>© UPRA — All rights reserved</small>
+          <div className="mt-2">
+            <Link href="/admin-login" className="text-gray-400 hover:text-gray-600 text-xs transition-colors">
+              Admin Access
+            </Link>
+          </div>
         </div>
       </footer>
     </div>

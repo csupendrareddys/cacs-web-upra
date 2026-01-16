@@ -83,15 +83,47 @@ export function Component() {
         mouseY.set(0);
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setIsLoading(true);
-        // Simulate API call
-        console.log(isLogin ? "Logging in..." : "Signing up...", {
-            isLogin,
-            data: isLogin ? { loginEmail, loginPassword } : { fullName, phone, signupEmail, profession, otherProfession, signupPassword }
-        });
-        setTimeout(() => setIsLoading(false), 2000);
+
+        if (!isLogin && signupPassword !== confirmPassword) {
+            alert("Passwords do not match!");
+            setIsLoading(false);
+            return;
+        }
+
+        const endpoint = isLogin ? '/api/partner-login' : '/api/partner-signup';
+        const payload = isLogin
+            ? { email: loginEmail, password: loginPassword }
+            : { fullName, phone, email: signupEmail, profession, otherProfession, password: signupPassword };
+
+        try {
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                if (isLogin) {
+                    localStorage.setItem('currentUser', JSON.stringify(data.user));
+                    window.location.href = '/dashboard';
+                } else {
+                    alert("Registration successful! Please login.");
+                    toggleMode();
+                }
+            } else {
+                alert(data.error || 'Authentication failed');
+            }
+        } catch (error) {
+            console.error('Partner Auth Error:', error);
+            alert('An unexpected error occurred');
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const toggleMode = () => {

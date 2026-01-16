@@ -7,8 +7,8 @@ import fs from 'fs';
 export async function getAuthenticatedDoc() {
     // 1. Load credentials
     // Note: User's specific path
-    const KEY_PATH = path.join(process.cwd(), 'database', 'service_account.json.json');
-    
+    const KEY_PATH = path.join(process.cwd(), 'database', 'service_account.json');
+
     // Check if file exists
     if (!fs.existsSync(KEY_PATH)) {
         throw new Error(`Service account key not found at: ${KEY_PATH}`);
@@ -39,12 +39,12 @@ export async function getAuthenticatedDoc() {
 export async function appendToSheet(data: Record<string, string | number | boolean>) {
     const doc = await getAuthenticatedDoc();
     const sheet = doc.sheetsByIndex[0]; // Access the first sheet
-    
+
     // Check if headers are set
     await sheet.loadHeaderRow(); // Ensure headers are loaded
-    
+
     const headers = ["Full Name", "Email", "Password", "Date"];
-    
+
     // Check if existing headers match our expectation. 
     // If the first header isn't "Full Name", we assume the sheet is wrong/old/garbage and fix it.
     const currentHeaders = sheet.headerValues;

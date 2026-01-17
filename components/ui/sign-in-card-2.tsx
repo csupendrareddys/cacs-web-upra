@@ -1,7 +1,7 @@
 'use client'
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
+import { motion, useMotionValue, useTransform } from 'framer-motion';
 import { Mail, Lock, Eye, EyeClosed, ArrowRight, Loader2 } from 'lucide-react';
 
 import { cn } from "@/lib/utils"
@@ -27,9 +27,7 @@ export function Component() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [isLoading, setIsLoading] = useState(false);
-    const [focusedInput, setFocusedInput] = useState<string | null>(null);
     const [rememberMe, setRememberMe] = useState(false);
-    const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
     // For 3D card effect - increased rotation range for more pronounced 3D effect
     const mouseX = useMotionValue(0);
@@ -41,7 +39,7 @@ export function Component() {
         const rect = e.currentTarget.getBoundingClientRect();
         mouseX.set(e.clientX - rect.left - rect.width / 2);
         mouseY.set(e.clientY - rect.top - rect.height / 2);
-        setMousePosition({ x: e.clientX, y: e.clientY });
+        mouseY.set(e.clientY - rect.top - rect.height / 2);
     };
 
     const handleMouseLeave = () => {
@@ -158,7 +156,7 @@ export function Component() {
                         </form>
 
                         <div className="mt-8 text-center text-sm text-gray-400">
-                            Don't have an account?{" "}
+                            Don&apos;t have an account?{" "}
                             <Link href="/signup" className="text-white hover:text-purple-400 transition-colors font-medium hover:underline">
                                 Sign up
                             </Link>

@@ -1,12 +1,12 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import Login from '@/components/pages/Login';
+import MainLayout from '@/components/layouts/MainLayout';
+import { GSTLanding } from '@/components/pages/CategoryLandings';
 import { useOrderStore } from '@/store/orderStore';
-import { auth } from '@/lib/firebase';
 
-export default function LoginPage() {
-    const { setUser } = useOrderStore();
+export default function GSTPage() {
+    const { user } = useOrderStore();
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
@@ -16,6 +16,8 @@ export default function LoginPage() {
     if (!mounted) return null;
 
     return (
-        <Login auth={auth} setUser={setUser} isDemoMode={false} />
+        <MainLayout user={user}>
+            <GSTLanding />
+        </MainLayout>
     );
 }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import db from '@/lib/db';
+import prisma from '@/lib/db';
 import bcrypt from 'bcryptjs';
 
 export async function POST(req: NextRequest) {
@@ -11,29 +11,27 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Missing email or password' }, { status: 400 });
         }
 
-        // Fetch user
-        // Partner login might check if the user has a 'Service_provider' role or related entry
-        const stmt = db.prepare(`
-            SELECT u.*, sp.verification_status 
-            FROM users u 
-            LEFT JOIN service_providers sp ON u.user_id = sp.user_id
-            WHERE u.email = ?
-        `);
-        const user = stmt.get(email);
+        // Fetch user with service provider data
+        const user = await prisma.user.findUnique({
+            where: { email },
+            include: {
+                serviceProvider: true
+            }
+        });
 
         if (!user) {
             return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
         }
 
         // Verify password
-        const isValid = await bcrypt.compare(password, user.password_hash);
+        const isValid = await bcrypt.compare(password, user.passwordHash);
 
         if (!isValid) {
             return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
         }
 
         // Check Role
-        if (user.role !== 'Service_provider' && user.role !== 'Super_Admin' && user.role !== 'Sub_Admin') {
+        if (user.role !== 'PARTNER' && user.role !== 'ADMIN') {
             return NextResponse.json({ error: 'Unauthorized: Not a partner account' }, { status: 403 });
         }
 
@@ -41,16 +39,17 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({
             message: 'Partner Login successful',
             user: {
-                id: user.user_id,
+                id: user.id,
                 email: user.email,
-                name: user.first_name,
+                name: user.serviceProvider?.fullName,
                 role: user.role,
-                status: user.verification_status
+                status: user.serviceProvider?.verificationStatus
             }
         }, { status: 200 });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Partner Login Error:', error);
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+        const errorMessage = error instanceof Error ? error.message : 'Internal Server Error';
+        return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
 }

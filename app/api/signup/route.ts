@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import db from '@/lib/db';
+import prisma from '@/lib/db';
 import bcrypt from 'bcryptjs';
 
 export async function POST(req: NextRequest) {
@@ -12,8 +12,9 @@ export async function POST(req: NextRequest) {
         }
 
         // Check if user already exists
-        const checkStmt = db.prepare('SELECT user_id FROM users WHERE email = ?');
-        const existingUser = checkStmt.get(email);
+        const existingUser = await prisma.user.findUnique({
+            where: { email }
+        });
 
         if (existingUser) {
             return NextResponse.json({ error: 'User with this email already exists' }, { status: 409 });
@@ -21,23 +22,31 @@ export async function POST(req: NextRequest) {
 
         // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
-        const username = email.split('@')[0]; // Simple username generation
 
-        // Insert new user
-        // Using "Service_reciver" as default role based on schema constraints
-        const insertStmt = db.prepare(`
-            INSERT INTO users (username, password_hash, email, first_name, role)
-            VALUES (?, ?, ?, ?, 'Service_reciver')
-        `);
+        // Create user and service receiver in a transaction
+        const result = await prisma.$transaction(async (tx) => {
+            const user = await tx.user.create({
+                data: {
+                    email,
+                    passwordHash: hashedPassword,
+                    role: 'CLIENT',
+                }
+            });
 
-        // We store fullName in first_name for now as schema supports first/last
-        const info = insertStmt.run(username, hashedPassword, email, fullName);
+            await tx.serviceReceiver.create({
+                data: {
+                    userId: user.id,
+                    fullName,
+                }
+            });
 
-        // Also create an entry in service_receivers as per schema logic (optional but good for consistency)
-        const insertReceiverStmt = db.prepare('INSERT INTO service_receivers (user_id, first_name) VALUES (?, ?)');
-        insertReceiverStmt.run(info.lastInsertRowid, fullName);
+            return user;
+        });
 
-        return NextResponse.json({ message: 'User registered successfully', userId: info.lastInsertRowid }, { status: 201 });
+        return NextResponse.json({
+            message: 'User registered successfully',
+            userId: result.id
+        }, { status: 201 });
 
     } catch (error: unknown) {
         console.error('CRITICAL ERROR in signup API:', error);

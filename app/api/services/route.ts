@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import db from '@/lib/db';
+import prisma from '@/lib/db';
 
 export async function GET(req: NextRequest) {
     try {
@@ -7,8 +7,9 @@ export async function GET(req: NextRequest) {
         const id = searchParams.get('id');
 
         if (id) {
-            const serviceStmt = db.prepare('SELECT * FROM document_related_services WHERE document_id = ?');
-            const service = serviceStmt.get(id);
+            const service = await prisma.documentService.findUnique({
+                where: { id }
+            });
 
             if (!service) {
                 return NextResponse.json({ error: 'Service not found' }, { status: 404 });
@@ -17,8 +18,7 @@ export async function GET(req: NextRequest) {
             // Mocking requirements until we have a dedicated table
             let requiredDocuments: { name: string }[] = [];
 
-            // Check based on name pattern
-            const name = service.document_type || '';
+            const name = service.documentType || '';
 
             if (name.includes('Partnership')) {
                 requiredDocuments = [
@@ -49,15 +49,33 @@ export async function GET(req: NextRequest) {
                 ];
             }
 
-            return NextResponse.json({ service: { ...service, requirements: requiredDocuments } }, { status: 200 });
+            return NextResponse.json({
+                service: {
+                    document_id: service.id,
+                    document_type: service.documentType,
+                    state: service.state,
+                    is_active: service.isActive,
+                    requirements: requiredDocuments
+                }
+            }, { status: 200 });
         }
 
-        const stmt = db.prepare('SELECT * FROM document_related_services WHERE is_active = 1 ORDER BY created_at DESC');
-        const services = stmt.all();
+        const services = await prisma.documentService.findMany({
+            where: { isActive: true },
+            orderBy: { createdAt: 'desc' }
+        });
 
-        return NextResponse.json({ services }, { status: 200 });
-    } catch (error: any) {
+        const formattedServices = services.map(s => ({
+            document_id: s.id,
+            document_type: s.documentType,
+            state: s.state,
+            is_active: s.isActive
+        }));
+
+        return NextResponse.json({ services: formattedServices }, { status: 200 });
+    } catch (error: unknown) {
         console.error("Failed to fetch services:", error);
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+        const errorMessage = error instanceof Error ? error.message : 'Internal Server Error';
+        return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
 }

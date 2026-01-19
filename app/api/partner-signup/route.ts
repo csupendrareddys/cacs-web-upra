@@ -1,6 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
-import db from '@/lib/db';
+import prisma from '@/lib/db';
 import bcrypt from 'bcryptjs';
+import { Profession } from '@prisma/client';
+
+// Map profession strings to enum
+function mapProfession(profession: string): Profession {
+    const mapping: Record<string, Profession> = {
+        'Chartered Accountant': 'CA',
+        'Company Secretary': 'CS',
+        'Lawyer': 'LAWYER',
+        'Other': 'OTHER',
+        'CA': 'CA',
+        'CS': 'CS',
+        'LAWYER': 'LAWYER',
+        'OTHER': 'OTHER'
+    };
+    return mapping[profession] || 'OTHER';
+}
 
 export async function POST(req: NextRequest) {
     try {
@@ -12,8 +28,9 @@ export async function POST(req: NextRequest) {
         }
 
         // Check if user already exists
-        const checkStmt = db.prepare('SELECT user_id FROM users WHERE email = ?');
-        const existingUser = checkStmt.get(email);
+        const existingUser = await prisma.user.findUnique({
+            where: { email }
+        });
 
         if (existingUser) {
             return NextResponse.json({ error: 'User with this email already exists' }, { status: 409 });
@@ -21,32 +38,35 @@ export async function POST(req: NextRequest) {
 
         // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
-        const username = email.split('@')[0];
 
-        // Insert into users table as Service_provider
-        const insertUserStmt = db.prepare(`
-            INSERT INTO users (username, password_hash, email, first_name, phone_number, role)
-            VALUES (?, ?, ?, ?, ?, 'Service_provider')
-        `);
+        // Create user and service provider in a transaction
+        const result = await prisma.$transaction(async (tx) => {
+            const user = await tx.user.create({
+                data: {
+                    email,
+                    passwordHash: hashedPassword,
+                    role: 'PARTNER',
+                }
+            });
 
-        // Start transaction
-        const transaction = db.transaction(() => {
-            const info = insertUserStmt.run(username, hashedPassword, email, fullName, phone);
-            const userId = info.lastInsertRowid;
+            await tx.serviceProvider.create({
+                data: {
+                    userId: user.id,
+                    fullName,
+                    phone,
+                    profession: mapProfession(profession),
+                    otherProfession: otherProfession || null,
+                    verificationStatus: 'PENDING',
+                }
+            });
 
-            // Insert into service_providers table
-            const insertProviderStmt = db.prepare(`
-                INSERT INTO service_providers (user_id, first_name, profession, other_profession, verification_status)
-                VALUES (?, ?, ?, ?, 'PENDING')
-            `);
-
-            insertProviderStmt.run(userId, fullName, profession, otherProfession || null);
-            return userId;
+            return user;
         });
 
-        const newUserId = transaction();
-
-        return NextResponse.json({ message: 'Partner registered successfully', userId: newUserId }, { status: 201 });
+        return NextResponse.json({
+            message: 'Partner registered successfully',
+            userId: result.id
+        }, { status: 201 });
 
     } catch (error: unknown) {
         console.error('CRITICAL ERROR in partner signup API:', error);

@@ -1,33 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
-import db from '@/lib/db';
+import prisma from '@/lib/db';
 
-export async function GET(req: NextRequest) {
+export async function GET() {
     try {
-        // In a real app, middleware would verify the session/token here to ensure admin access.
-
         // Fetch users with their partner status if applicable
-        // SQLite doesn't support RIGHT JOIN, so we use LEFT JOIN from users
-        const stmt = db.prepare(`
-            SELECT 
-                u.user_id, 
-                u.username, 
-                u.email, 
-                u.first_name, 
-                u.role, 
-                u.status as user_status,
-                sp.verification_status,
-                sp.profession
-            FROM users u
-            LEFT JOIN service_providers sp ON u.user_id = sp.user_id
-            ORDER BY u.created_at DESC
-        `);
+        const users = await prisma.user.findMany({
+            include: {
+                serviceProvider: {
+                    select: {
+                        verificationStatus: true,
+                        profession: true
+                    }
+                }
+            },
+            orderBy: {
+                createdAt: 'desc'
+            }
+        });
 
-        const users = stmt.all();
+        const formattedUsers = users.map(user => ({
+            user_id: user.id,
+            email: user.email,
+            role: user.role,
+            user_status: user.status,
+            verification_status: user.serviceProvider?.verificationStatus,
+            profession: user.serviceProvider?.profession
+        }));
 
-        return NextResponse.json({ users }, { status: 200 });
-    } catch (error: any) {
+        return NextResponse.json({ users: formattedUsers }, { status: 200 });
+    } catch (error: unknown) {
         console.error('Admin Users API Error:', error);
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+        const errorMessage = error instanceof Error ? error.message : 'Internal Server Error';
+        return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
 }
 
@@ -42,17 +46,23 @@ export async function PUT(req: NextRequest) {
         }
 
         if (action === 'VERIFY_PARTNER') {
-            const stmt = db.prepare('UPDATE service_providers SET verification_status = ? WHERE user_id = ?');
-            const info = stmt.run('VERIFIED', userId);
-            if (info.changes === 0) return NextResponse.json({ error: 'Partner not found' }, { status: 404 });
+            const updated = await prisma.serviceProvider.update({
+                where: { userId },
+                data: { verificationStatus: 'VERIFIED' }
+            });
+            if (!updated) return NextResponse.json({ error: 'Partner not found' }, { status: 404 });
         }
         else if (action === 'BLOCK_USER') {
-            const stmt = db.prepare('UPDATE users SET status = ? WHERE user_id = ?');
-            stmt.run('BLOCKED', userId);
+            await prisma.user.update({
+                where: { id: userId },
+                data: { status: 'BLOCKED' }
+            });
         }
         else if (action === 'ACTIVATE_USER') {
-            const stmt = db.prepare('UPDATE users SET status = ? WHERE user_id = ?');
-            stmt.run('ACTIVE', userId);
+            await prisma.user.update({
+                where: { id: userId },
+                data: { status: 'ACTIVE' }
+            });
         }
         else {
             return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
@@ -60,8 +70,9 @@ export async function PUT(req: NextRequest) {
 
         return NextResponse.json({ message: 'Action completed successfully' }, { status: 200 });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Admin User Update Error:', error);
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+        const errorMessage = error instanceof Error ? error.message : 'Internal Server Error';
+        return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
 }

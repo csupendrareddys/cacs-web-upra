@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import db from '@/lib/db';
+import prisma from '@/lib/db';
 import bcrypt from 'bcryptjs';
 
 export async function POST(req: NextRequest) {
@@ -12,35 +12,34 @@ export async function POST(req: NextRequest) {
         }
 
         // Fetch user
-        const stmt = db.prepare('SELECT * FROM users WHERE email = ?');
-        const user = stmt.get(email);
+        const user = await prisma.user.findUnique({
+            where: { email }
+        });
 
         if (!user) {
             return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
         }
 
         // Verify password
-        const isValid = await bcrypt.compare(password, user.password_hash);
+        const isValid = await bcrypt.compare(password, user.passwordHash);
 
         if (!isValid) {
             return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
         }
 
-        // Successful login
-        // In a real app, you would set a session cookie or return a JWT here.
-        // For this demo, we just return success and basic user info.
+        // Successful login - return user info
         return NextResponse.json({
             message: 'Login successful',
             user: {
-                id: user.user_id,
+                id: user.id,
                 email: user.email,
-                name: user.first_name,
                 role: user.role
             }
         }, { status: 200 });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Login Error:', error);
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+        const errorMessage = error instanceof Error ? error.message : 'Internal Server Error';
+        return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
 }

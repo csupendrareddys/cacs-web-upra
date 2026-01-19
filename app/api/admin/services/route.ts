@@ -1,13 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
-import db from '@/lib/db';
+import prisma from '@/lib/db';
 
-export async function GET(req: NextRequest) {
+export async function GET() {
     try {
-        const stmt = db.prepare('SELECT * FROM document_related_services ORDER BY created_at DESC');
-        const services = stmt.all();
-        return NextResponse.json({ services }, { status: 200 });
-    } catch (error: any) {
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+        const services = await prisma.documentService.findMany({
+            orderBy: { createdAt: 'desc' }
+        });
+
+        const formattedServices = services.map(s => ({
+            document_id: s.id,
+            document_type: s.documentType,
+            state: s.state,
+            is_active: s.isActive,
+            created_at: s.createdAt
+        }));
+
+        return NextResponse.json({ services: formattedServices }, { status: 200 });
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Internal Server Error';
+        return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
 }
 
@@ -20,12 +31,18 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Service name is required' }, { status: 400 });
         }
 
-        const stmt = db.prepare('INSERT INTO document_related_services (document_type, state, is_active) VALUES (?, ?, ?)');
-        const info = stmt.run(document_type, state || 'All India', is_active ? 1 : 0);
+        const service = await prisma.documentService.create({
+            data: {
+                documentType: document_type,
+                state: state || 'All India',
+                isActive: is_active ?? true,
+            }
+        });
 
-        return NextResponse.json({ message: 'Service added', id: info.lastInsertRowid }, { status: 201 });
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ message: 'Service added', id: service.id }, { status: 201 });
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Internal Server Error';
+        return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
 }
 
@@ -36,11 +53,13 @@ export async function DELETE(req: NextRequest) {
 
         if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
 
-        const stmt = db.prepare('DELETE FROM document_related_services WHERE document_id = ?');
-        stmt.run(id);
+        await prisma.documentService.delete({
+            where: { id }
+        });
 
         return NextResponse.json({ message: 'Service deleted' }, { status: 200 });
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Internal Server Error';
+        return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
 }

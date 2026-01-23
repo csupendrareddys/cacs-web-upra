@@ -61,3 +61,4 @@ database/*.sqlite-shm
 database/*.sqlite-wal
 
 /lib/generated/prisma
+/_legacy_backup/

@@ -4,11 +4,20 @@ import { Resend } from 'resend';
 // Lazy initialization prevents build-time errors if env vars are missing
 const getResend = () => {
     const apiKey = process.env.RESEND_API_KEY;
+
     if (!apiKey) {
-        console.warn('RESEND_API_KEY is not defined');
-        // Return a mock or throw, but for build safety, return a dummy that fails on send
-        return new Resend('re_dummy_key_for_build');
+        // Return a mock object to avoid invoking Resend constructor without a key
+        // This prevents build-time errors like: "Missing API key. Pass it to the constructor"
+        return {
+            emails: {
+                send: async () => {
+                    console.warn('RESEND_API_KEY is not defined. Email sending simulated.');
+                    return { error: { message: 'Missing API Key', name: 'missing_api_key' }, data: null };
+                }
+            }
+        } as unknown as Resend;
     }
+
     return new Resend(apiKey);
 };
 

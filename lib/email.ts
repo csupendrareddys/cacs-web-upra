@@ -1,7 +1,16 @@
 import { Resend } from 'resend';
 
-// Initialize Resend client
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Helper to get Resend client
+// Lazy initialization prevents build-time errors if env vars are missing
+const getResend = () => {
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
+        console.warn('RESEND_API_KEY is not defined');
+        // Return a mock or throw, but for build safety, return a dummy that fails on send
+        return new Resend('re_dummy_key_for_build');
+    }
+    return new Resend(apiKey);
+};
 
 // Default from address
 const FROM_EMAIL = process.env.FROM_EMAIL || 'CACS Upra <noreply@cacsupra.com>';
@@ -19,9 +28,10 @@ export async function sendWelcomeEmail(
     name: string
 ): Promise<EmailResult> {
     try {
-        await resend.emails.send({
+        await getResend().emails.send({
             from: FROM_EMAIL,
             to: [to],
+            // ... (rest is same)
             subject: 'Welcome to CACS Upra - Partner Registration Received',
             html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -57,7 +67,7 @@ export async function sendOrderConfirmationEmail(
     serviceName: string
 ): Promise<EmailResult> {
     try {
-        await resend.emails.send({
+        await getResend().emails.send({
             from: FROM_EMAIL,
             to: [to],
             subject: `Order Confirmed - ${serviceName}`,
@@ -99,7 +109,7 @@ export async function sendPartnerJobNotificationEmail(
     orderId: string
 ): Promise<EmailResult> {
     try {
-        await resend.emails.send({
+        await getResend().emails.send({
             from: FROM_EMAIL,
             to: [to],
             subject: `New Job Available - ${serviceName}`,
@@ -157,7 +167,7 @@ export async function sendVerificationStatusEmail(
     const { subject, message, color } = statusMessages[status];
 
     try {
-        await resend.emails.send({
+        await getResend().emails.send({
             from: FROM_EMAIL,
             to: [to],
             subject,
@@ -213,7 +223,7 @@ export async function sendOrderStatusUpdateEmail(
     };
 
     try {
-        await resend.emails.send({
+        await getResend().emails.send({
             from: FROM_EMAIL,
             to: [to],
             subject: `${config.subject} - Order #${orderId.slice(0, 8)}`,

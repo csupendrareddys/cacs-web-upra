@@ -1,7 +1,10 @@
 "use client";
 
-import { SessionProvider as NextAuthSessionProvider } from "next-auth/react";
+import React from 'react';
+
 
 export function SessionProvider({ children }: { children: React.ReactNode }) {
-    return <NextAuthSessionProvider>{children}</NextAuthSessionProvider>;
+    // Optional: We could check session validity with backend here
+    // For now, it just renders children, preserving the layout structure.
+    return <>{children}</>;
 }

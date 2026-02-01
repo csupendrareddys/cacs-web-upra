@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { signIn } from 'next-auth/react';
+
 import { motion, useMotionValue, useTransform } from 'framer-motion';
 import { Mail, Lock, Eye, EyeClosed, ArrowRight, Loader2 } from 'lucide-react';
 
@@ -57,21 +57,26 @@ export function Component() {
         setError("");
 
         try {
-            const result = await signIn("credentials", {
-                email,
-                password,
-                redirect: false,
+            const response = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password }),
             });
 
-            if (result?.error) {
-                setError("Invalid email or password");
-            } else {
-                router.push("/dashboard");
-                router.refresh();
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Login failed');
             }
-        } catch (err) {
+
+            // Success
+            router.push("/dashboard");
+            router.refresh();
+
+        } catch (err: unknown) {
             console.error("Login error:", err);
-            setError("An unexpected error occurred");
+            const msg = err instanceof Error ? err.message : "An unexpected error occurred";
+            setError(msg);
         } finally {
             setIsLoading(false);
         }

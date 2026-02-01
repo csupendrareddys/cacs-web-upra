@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { signIn } from 'next-auth/react';
+
 import { motion, useMotionValue, useTransform } from 'framer-motion';
 import { Mail, Lock, Eye, EyeClosed, ArrowRight, Loader2, User, Phone, Briefcase } from 'lucide-react';
 import { cn } from "@/lib/utils"
@@ -99,23 +99,28 @@ export function Component() {
         }
 
         if (isLogin) {
-            // Use NextAuth for login
+            // Use Custom Auth for login
             try {
-                const result = await signIn("credentials", {
-                    email: loginEmail,
-                    password: loginPassword,
-                    redirect: false,
+                const response = await fetch('/api/partner-login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: loginEmail, password: loginPassword })
                 });
 
-                if (result?.error) {
-                    setError("Invalid email or password");
-                } else {
-                    router.push("/dashboard");
-                    router.refresh();
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Authentication failed');
                 }
-            } catch (err) {
+
+                // Login successful
+                router.push("/dashboard"); // Or /partners/dashboard if separate
+                router.refresh();
+
+            } catch (err: unknown) {
                 console.error("Partner login error:", err);
-                setError("An unexpected error occurred");
+                const msg = err instanceof Error ? err.message : "An unexpected error occurred";
+                setError(msg);
             }
         } else {
             // Signup still uses the API endpoint

@@ -106,6 +106,12 @@ model ServiceProvider {
   verificationStatus VerificationStatus @default(PENDING) @map("verification_status")
   documentsUrl       String?            @map("documents_url")
   rating             Float?             @default(0)
+  
+  // Extended Profile
+  membershipNumber   String?            @map("membership_number")
+  experience         String?            // Years of experience
+  city               String?
+
   createdAt          DateTime           @default(now()) @map("created_at")
   updatedAt          DateTime           @updatedAt @map("updated_at")
 

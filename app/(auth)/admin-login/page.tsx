@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { signIn } from 'next-auth/react';
+
 import { motion } from 'framer-motion';
 import { Shield, Lock, Eye, EyeClosed, Loader2, Mail } from 'lucide-react';
 import { cn } from "@/lib/utils";
@@ -37,22 +37,38 @@ export default function AdminLogin() {
         setError("");
 
         try {
-            const result = await signIn("credentials", {
-                email,
-                password,
-                redirect: false,
+            // Using existing /api/login endpoint which supports admin via role check in backend
+            // or we might need to ensure /api/login checks roles.
+            // The previous /api/login allows any user.
+            // But this is the Admin Login PAGE.
+            // We should login, then check if role is ADMIN in the response.
+
+            const response = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password }),
             });
 
-            if (result?.error) {
-                setError("Invalid credentials or insufficient privileges");
-            } else {
-                // Successfully authenticated - middleware will handle role-based access
-                router.push("/dashboard");
-                router.refresh();
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Authentication failed');
             }
-        } catch (err) {
+
+            if (data.role !== 'ADMIN') {
+                // If logged in but not admin, maybe logout or show error?
+                // For now, show error.
+                throw new Error("Access Denied: Insufficient Privileges");
+            }
+
+            // Success
+            router.push("/dashboard"); // Or /admin/dashboard if it exists
+            router.refresh();
+
+        } catch (err: unknown) {
             console.error("Admin login error:", err);
-            setError("An unexpected error occurred");
+            const msg = err instanceof Error ? err.message : "An unexpected error occurred";
+            setError(msg);
         } finally {
             setIsLoading(false);
         }

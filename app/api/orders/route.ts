@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
         // Create the order
         const order = await prisma.order.create({
             data: {
-                serviceId,
+                serviceId: service.id,
                 customerId: serviceReceiver.id,
                 status: 'CREATED',
                 paymentStatus: 'PENDING',

@@ -14,7 +14,8 @@ function mapProfession(profession: string): Profession {
         'CA': 'CA',
         'CS': 'CS',
         'LAWYER': 'LAWYER',
-        'OTHER': 'OTHER'
+        'OTHER': 'OTHER',
+        'Tax Consultant': 'OTHER' // Default tax consultant to OTHER for now as it's not in Enum
     };
     return mapping[profession] || 'OTHER';
 }
@@ -22,7 +23,17 @@ function mapProfession(profession: string): Profession {
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const { fullName, email, password, phone, profession, otherProfession } = body;
+        const {
+            fullName,
+            email,
+            password,
+            phone,
+            profession,
+            otherProfession,
+            membershipNumber,
+            experience,
+            city
+        } = body;
 
         if (!fullName || !email || !password || !phone || !profession) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -47,6 +58,7 @@ export async function POST(req: NextRequest) {
                     email,
                     passwordHash: hashedPassword,
                     role: 'PARTNER',
+                    status: 'PENDING',
                 }
             });
 
@@ -58,13 +70,16 @@ export async function POST(req: NextRequest) {
                     profession: mapProfession(profession),
                     otherProfession: otherProfession || null,
                     verificationStatus: 'PENDING',
+                    membershipNumber: membershipNumber || null,
+                    experience: experience ? String(experience) : null,
+                    city: city || null
                 }
             });
 
             return user;
         });
 
-        // Send welcome email (don't await - fire and forget)
+        // Send welcome email (fire and forget)
         sendWelcomeEmail(email, fullName).catch(console.error);
 
         return NextResponse.json({
@@ -78,4 +93,3 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
 }
-

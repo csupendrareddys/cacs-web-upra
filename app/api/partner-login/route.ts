@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import bcrypt from 'bcryptjs';
+import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(req: NextRequest) {
     try {
@@ -35,8 +36,20 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized: Not a partner account' }, { status: 403 });
         }
 
-        // Successful login
-        return NextResponse.json({
+        // Create Session in DB
+        const sessionToken = uuidv4();
+        const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+        await prisma.session.create({
+            data: {
+                sessionToken,
+                userId: user.id,
+                expires: expiresAt,
+            }
+        });
+
+        // Prepare Response with HttpOnly Cookie
+        const response = NextResponse.json({
             message: 'Partner Login successful',
             user: {
                 id: user.id,
@@ -46,6 +59,16 @@ export async function POST(req: NextRequest) {
                 status: user.serviceProvider?.verificationStatus
             }
         }, { status: 200 });
+
+        response.cookies.set('session_token', sessionToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            path: '/',
+            expires: expiresAt
+        });
+
+        return response;
 
     } catch (error: unknown) {
         console.error('Partner Login Error:', error);

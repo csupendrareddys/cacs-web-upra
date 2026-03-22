@@ -24,10 +24,10 @@ export function Footer() {
                 <div>
                     <h4 className="font-bold text-gray-900 mb-4">Usage</h4>
                     <ul className="space-y-2">
-                        <li><Link href="#" className="hover:underline">Terms & Conditions</Link></li>
-                        <li><Link href="#" className="hover:underline">Privacy Policy</Link></li>
-                        <li><Link href="#" className="hover:underline">Refund Policy</Link></li>
-                        <li><Link href="#" className="hover:underline">Legal</Link></li>
+                        <li><Link href="/terms-and-conditions" className="hover:underline">Terms & Conditions</Link></li>
+                        <li><Link href="/privacy-policy" className="hover:underline">Privacy Policy</Link></li>
+                        <li><Link href="/refund-policy" className="hover:underline">Refund Policy</Link></li>
+                        <li><Link href="/terms-and-conditions" className="hover:underline">Legal</Link></li>
                     </ul>
                 </div>
                 <div>

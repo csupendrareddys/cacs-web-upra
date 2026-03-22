@@ -338,6 +338,8 @@ const sections: LegalSection[] = [
                             </p>
                         </div>
                     </div>
+                    <div className="space-y-3">
+                        <div>
                             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Website</span>
                             <p className="text-sm mt-1">
                                 <a href="https://www.bookmycacs.in" className="text-blue-600 hover:underline">www.bookmycacs.in</a>

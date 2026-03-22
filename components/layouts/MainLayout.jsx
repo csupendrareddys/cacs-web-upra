@@ -27,9 +27,6 @@ const MainLayout = ({ children, user }) => {
                     <div className="flex items-center gap-1">
                         <span className="hidden sm:inline text-slate-400 mr-1">📧</span>
                         <a href="mailto:cacssirigalaupendrareddy@gmail.com" className="hover:text-white transition-colors hidden sm:inline">cacssirigalaupendrareddy@gmail.com</a>
-                        <span className="hidden sm:inline text-slate-600 mx-2">|</span>
-                        <span className="hidden sm:inline text-slate-400 mr-1">📞</span>
-                        <a href="tel:+917799278523" className="hover:text-white transition-colors hidden sm:inline">+91-7799278523</a>
                     </div>
                     <div className="flex items-center gap-4 font-medium">
                         <button onClick={() => router.push('/terms-and-conditions')} className="hover:text-white transition-colors cursor-pointer">Terms & Conditions</button>

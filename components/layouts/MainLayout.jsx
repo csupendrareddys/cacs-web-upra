@@ -21,6 +21,26 @@ const MainLayout = ({ children, user }) => {
 
     return (
         <div className="min-h-screen bg-white font-sans text-slate-900">
+            {/* Top Utility Bar — Legal & Policy Links */}
+            <div className="w-full bg-slate-900 text-slate-300 text-xs">
+                <div className="max-w-7xl mx-auto px-4 h-9 flex items-center justify-between">
+                    <div className="flex items-center gap-1">
+                        <span className="hidden sm:inline text-slate-400 mr-1">📧</span>
+                        <a href="mailto:cacssirigalaupendrareddy@gmail.com" className="hover:text-white transition-colors hidden sm:inline">cacssirigalaupendrareddy@gmail.com</a>
+                        <span className="hidden sm:inline text-slate-600 mx-2">|</span>
+                        <span className="hidden sm:inline text-slate-400 mr-1">📞</span>
+                        <a href="tel:+917799278523" className="hover:text-white transition-colors hidden sm:inline">+91-7799278523</a>
+                    </div>
+                    <div className="flex items-center gap-4 font-medium">
+                        <button onClick={() => router.push('/terms-and-conditions')} className="hover:text-white transition-colors cursor-pointer">Terms & Conditions</button>
+                        <span className="text-slate-600">|</span>
+                        <button onClick={() => router.push('/privacy-policy')} className="hover:text-white transition-colors cursor-pointer">Privacy Policy</button>
+                        <span className="text-slate-600">|</span>
+                        <button onClick={() => router.push('/refund-policy')} className="hover:text-white transition-colors cursor-pointer">Refund Policy</button>
+                    </div>
+                </div>
+            </div>
+
             {/* 3-ZONE NAVBAR ARCHITECTURE 
         Zone 1 (Left): Logo (Fixed width)
         Zone 2 (Center): Navigation (Flex-grow, Centered)
